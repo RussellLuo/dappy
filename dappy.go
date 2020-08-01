@@ -16,11 +16,6 @@ var (
 	ErrInvalidPassword = errors.New("invalid password")
 )
 
-// Client interface performs the LDAP auth operation.
-type Client interface {
-	Auth(username, password string) error
-}
-
 // Config to provide a dappy client.
 // All fields are required, except for Filter.
 type Config struct {
@@ -37,13 +32,13 @@ type User struct {
 }
 
 // local struct for implementing Client interface
-type client struct {
-	Config
+type Client struct {
+	config Config
 }
 
 // New creates s client with the provided config.
 // If the config is invalid, an error will be returned.
-func New(config Config) (Client, error) {
+func New(config Config) (*Client, error) {
 	if config.Host == "" {
 		return nil, errors.New("config.Host is empty")
 	}
@@ -60,28 +55,28 @@ func New(config Config) (Client, error) {
 		config.Filter = "uid"
 	}
 
-	return client{config}, nil
+	return &Client{config: config}, nil
 }
 
 // Auth performs the LDAP auth operation.
-func (c client) Auth(username, password string) error {
+func (c *Client) Auth(username, password string) error {
 	// Establish a connection.
-	conn, err := connect(c.Host)
+	conn, err := connect(c.config.Host)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
 	// Perform the initial read-only bind for admin.
-	if err = conn.Bind(c.ROAdmin.Name, c.ROAdmin.Pass); err != nil {
+	if err = conn.Bind(c.config.ROAdmin.Name, c.config.ROAdmin.Pass); err != nil {
 		return err
 	}
 
 	// Find the user by name.
 	result, err := conn.Search(ldap.NewSearchRequest(
-		c.BaseDN,
+		c.config.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		fmt.Sprintf("(%v=%v)", c.Filter, username),
+		fmt.Sprintf("(%v=%v)", c.config.Filter, username),
 		[]string{"dn"},
 		nil,
 	))
