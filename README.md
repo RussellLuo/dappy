@@ -32,7 +32,6 @@ func main() {
 		Host:   "ldap.example.com:389",
 		ROAdmin: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
 		BaseDN: "ou=People,dc=example,dc=com",
-		Filter: "uid",
 	}); err != nil {
 		panic(err)
 	}
