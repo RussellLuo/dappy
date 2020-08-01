@@ -10,7 +10,7 @@ This package boils down LDAP functionality to User Authentication, that's it.
 
 Thanks to https://github.com/go-ldap/ldap
 
-`go get github.com/nerney/dappy`
+`go get github.com/RussellLuo/dappy`
 
 Example:
 
@@ -20,19 +20,16 @@ package main
 import (
 	"log"
 
-	"github.com/nerney/dappy"
+	"github.com/RussellLuo/dappy"
 )
 
 func main() {
-	var client dappy.Client
-	var err error
-
-	// create a new client
-	if client, err = dappy.New(dappy.Config{
+	client, err := dappy.New(dappy.Config{
 		Host:   "ldap.example.com:389",
 		ROAdmin: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
 		BaseDN: "ou=People,dc=example,dc=com",
-	}); err != nil {
+	})
+	if err != nil {
 		panic(err)
 	}
 

@@ -3,15 +3,14 @@ package dappy_test
 import (
 	"testing"
 
-	"github.com/nerney/dappy"
+	"github.com/RussellLuo/dappy"
 	"github.com/stretchr/testify/assert"
 )
 
 var client, _ = dappy.New(dappy.Config{
-	BaseDN: "dc=example,dc=com",
-	Filter: "uid",
-	ROUser: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
-	Host:   "ldap.forumsys.com:389",
+	Host:    "ldap.forumsys.com:389",
+	ROAdmin: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
+	BaseDN:  "dc=example,dc=com",
 })
 
 func TestDappyAuth_HappyPath(t *testing.T) {
