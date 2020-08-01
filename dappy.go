@@ -43,34 +43,35 @@ type client struct {
 
 // Auth implementation for the Client interface
 func (c client) Auth(username, password string) error {
-	// establish connection
+	// Establish a connection.
 	conn, err := connect(c.Host)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	// perform initial read-only bind
+	// Perform the initial read-only bind.
 	if err = conn.Bind(c.ROUser.Name, c.ROUser.Pass); err != nil {
 		return err
 	}
 
-	// find the user attempting to login
-	results, err := conn.Search(ldap.NewSearchRequest(
-		c.BaseDN, ldap.ScopeWholeSubtree,
-		ldap.NeverDerefAliases,
-		0, 0, false, fmt.Sprintf("(%v=%v)", c.Filter, username),
-		[]string{}, nil,
+	// Find the user by name.
+	result, err := conn.Search(ldap.NewSearchRequest(
+		c.BaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		fmt.Sprintf("(%v=%v)", c.Filter, username),
+		[]string{"dn"},
+		nil,
 	))
 	if err != nil {
 		return err
 	}
-	if len(results.Entries) < 1 {
+	if len(result.Entries) < 1 {
 		return ErrUserNotFound
 	}
 
-	// attempt auth
-	err = conn.Bind(results.Entries[0].DN, password)
+	// Attempt to authenticate the user.
+	err = conn.Bind(result.Entries[0].DN, password)
 	if isErrInvalidCredentials(err) {
 		return ErrInvalidPassword
 	}
