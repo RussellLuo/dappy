@@ -29,10 +29,10 @@ func main() {
 
 	// create a new client
 	if client, err = dappy.New(dappy.Config{
-		BaseDN: "dc=example,dc=com",
+		Host:   "ldap.example.com:389",
+		ROAdmin: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
+		BaseDN: "ou=People,dc=example,dc=com",
 		Filter: "uid",
-		ROUser: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
-		Host:   "ldap.forumsys.com:389",
 	}); err != nil {
 		panic(err)
 	}
