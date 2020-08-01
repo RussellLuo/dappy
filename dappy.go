@@ -60,6 +60,13 @@ func New(config Config) (*Client, error) {
 
 // Auth performs the LDAP auth operation.
 func (c *Client) Auth(username, password string) error {
+	if username == "" {
+		return ErrUserNotFound
+	}
+	if password == "" {
+		return ErrInvalidPassword
+	}
+
 	// Establish a connection.
 	conn, err := connect(c.config.Host)
 	if err != nil {
@@ -83,12 +90,14 @@ func (c *Client) Auth(username, password string) error {
 	if err != nil {
 		return err
 	}
+
 	if len(result.Entries) < 1 {
 		return ErrUserNotFound
 	}
+	userDN := result.Entries[0].DN
 
 	// Attempt to authenticate the user.
-	err = conn.Bind(result.Entries[0].DN, password)
+	err = conn.Bind(userDN, password)
 	if isErrInvalidCredentials(err) {
 		return ErrInvalidPassword
 	}
