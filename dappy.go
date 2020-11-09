@@ -16,13 +16,11 @@ var (
 	ErrInvalidPassword = errors.New("invalid password")
 )
 
-// Config to provide a dappy client.
-// All fields are required, except for Filter.
+// Config is the configuration of a dappy client.
 type Config struct {
 	Host    string // The LDAP host and port, ex. "ldap.example.com:389"
 	ROAdmin User   // The read-only admin for initial bind
 	BaseDN  string // The base directory, ex. "ou=People,dc=example,dc=com"
-	Filter  string // The filter expression, defaults to "uid"
 }
 
 // User holds the name and pass required for initial read-only bind.
@@ -50,9 +48,6 @@ func New(config Config) (*Client, error) {
 	}
 	if config.BaseDN == "" {
 		return nil, errors.New("config.BaseDN is empty")
-	}
-	if config.Filter == "" {
-		config.Filter = "uid"
 	}
 
 	return &Client{config: config}, nil
