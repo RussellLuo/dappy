@@ -67,34 +67,17 @@ func (c *Client) Auth(username, password string) error {
 		return ErrInvalidPassword
 	}
 
-	// Establish a connection.
 	conn, err := connect(c.config.Host)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	// Perform the initial read-only bind for admin.
-	if err = conn.Bind(c.config.ROAdmin.Name, c.config.ROAdmin.Pass); err != nil {
-		return err
-	}
-
-	// Find the user by name.
-	result, err := conn.Search(ldap.NewSearchRequest(
-		c.config.BaseDN,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		fmt.Sprintf("(%v=%v)", c.config.Filter, username),
-		[]string{"dn"},
-		nil,
-	))
+	entry, err := c.search(conn, username, "dn")
 	if err != nil {
 		return err
 	}
-
-	if len(result.Entries) < 1 {
-		return ErrUserNotFound
-	}
-	userDN := result.Entries[0].DN
+	userDN := entry.DN
 
 	// Attempt to authenticate the user.
 	err = conn.Bind(userDN, password)
@@ -116,7 +99,7 @@ func (c *Client) GetAttributes(username string, attrNames ...string) ([]*ldap.En
 	}
 	defer conn.Close()
 
-	entry, err := c.search(conn, username, attrNames)
+	entry, err := c.search(conn, username, attrNames...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +107,8 @@ func (c *Client) GetAttributes(username string, attrNames ...string) ([]*ldap.En
 	return entry.Attributes, nil
 }
 
-func (c *Client) search(conn *ldap.Conn, username string, attrNames []string) (*ldap.Entry, error) {
+// search tries to find the given user named username, as well as the associated attributes.
+func (c *Client) search(conn *ldap.Conn, username string, attrNames ...string) (*ldap.Entry, error) {
 	// Perform the initial read-only bind for admin.
 	if err := conn.Bind(c.config.ROAdmin.Name, c.config.ROAdmin.Pass); err != nil {
 		return nil, err
