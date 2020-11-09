@@ -26,7 +26,7 @@ import (
 )
 
 func main() {
-    // Create a client
+	// Create a client
 	client, err := dappy.New(dappy.Config{
 		Host:   "ldap.example.com:389",
 		ROAdmin: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
@@ -43,11 +43,20 @@ func main() {
 	// Do the authentication
 	if err := client.Auth(username, password); err != nil {
 		if err == dappy.ErrUserNotFound || err == dappy.ErrInvalidPassword {
-		    log.Printf("Failed due to: %v\n", err)
-		    return
+			log.Printf("Failed due to: %v\n", err)
+			return
 		}
-        panic(err)
+		panic(err)
 	}
 	log.Println("Success!")
+
+	// Get attributes by username
+	attrs, err := client.GetAttributes(username, "displayName")
+	if err != nil {
+		panic(err)
+	}
+	for _, attr := range attrs {
+		log.Printf("name: %s, values: %#v\n", attr.Name, attr.Values)
+	}
 }
 ```
