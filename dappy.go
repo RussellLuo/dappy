@@ -104,6 +104,52 @@ func (c *Client) Auth(username, password string) error {
 	return err
 }
 
+// GetAttributes returns the specified LDAP attributes associated with the given username.
+func (c *Client) GetAttributes(username string, attrNames ...string) ([]*ldap.EntryAttribute, error) {
+	if username == "" {
+		return nil, ErrUserNotFound
+	}
+
+	conn, err := connect(c.config.Host)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	entry, err := c.search(conn, username, attrNames)
+	if err != nil {
+		return nil, err
+	}
+
+	return entry.Attributes, nil
+}
+
+func (c *Client) search(conn *ldap.Conn, username string, attrNames []string) (*ldap.Entry, error) {
+	// Perform the initial read-only bind for admin.
+	if err := conn.Bind(c.config.ROAdmin.Name, c.config.ROAdmin.Pass); err != nil {
+		return nil, err
+	}
+
+	// Find the user by uid.
+	result, err := conn.Search(ldap.NewSearchRequest(
+		c.config.BaseDN,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		fmt.Sprintf("(uid=%v)", username),
+		attrNames,
+		nil,
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Entries) < 1 {
+		return nil, ErrUserNotFound
+	}
+
+	// Only return the first one if there're multiple entries.
+	return result.Entries[0], nil
+}
+
 // Helper functions
 
 // connect establishes a connection with an ldap host
