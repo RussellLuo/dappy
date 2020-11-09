@@ -10,7 +10,9 @@ This package boils down LDAP functionality to User Authentication, that's it.
 
 Thanks to https://github.com/go-ldap/ldap
 
-`go get github.com/RussellLuo/dappy`
+```bash
+$ go get -u github.com/RussellLuo/dappy
+```
 
 Example:
 
@@ -24,6 +26,7 @@ import (
 )
 
 func main() {
+    // Create a client
 	client, err := dappy.New(dappy.Config{
 		Host:   "ldap.example.com:389",
 		ROAdmin: dappy.User{Name: "cn=read-only-admin,dc=example,dc=com", Pass: "password"},
@@ -33,17 +36,17 @@ func main() {
 		panic(err)
 	}
 
-	// username and password to authenticate
+	// The username and password to be authenticated
 	username := "tesla"
 	password := "password"
 
-	// attempt the authentication
+	// Do the authentication
 	if err := client.Auth(username, password); err != nil {
 		if err == dappy.ErrUserNotFound || err == dappy.ErrInvalidPassword {
 		    log.Printf("Failed due to: %v\n", err)
-		} else {
-			panic(err)
+		    return
 		}
+        panic(err)
 	}
 	log.Println("Success!")
 }
