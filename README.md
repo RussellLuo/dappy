@@ -50,8 +50,8 @@ func main() {
 	}
 	log.Println("Success!")
 
-	// Get attributes by username
-	attrs, err := client.GetAttributes(username, "displayName")
+	// Search attributes by a filter expression
+	attrs, err := client.SearchAttrs("(uid=te*)", "displayName")
 	if err != nil {
 		panic(err)
 	}

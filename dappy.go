@@ -68,11 +68,17 @@ func (c *Client) Auth(username, password string) error {
 	}
 	defer conn.Close()
 
-	entry, err := c.search(conn, username, "dn")
+	filter := fmt.Sprintf("(uid=%v)", username)
+	entries, err := c.search(conn, filter, "dn")
 	if err != nil {
 		return err
 	}
-	userDN := entry.DN
+
+	if len(entries) == 0 {
+		return ErrUserNotFound
+	}
+	// Use the first entry.
+	userDN := entries[0].DN
 
 	// Attempt to authenticate the user.
 	err = conn.Bind(userDN, password)
@@ -82,10 +88,10 @@ func (c *Client) Auth(username, password string) error {
 	return err
 }
 
-// GetAttributes returns the specified LDAP attributes associated with the given username.
-func (c *Client) GetAttributes(username string, attrNames ...string) ([]*ldap.EntryAttribute, error) {
-	if username == "" {
-		return nil, ErrUserNotFound
+// SearchAttrs searches the specified LDAP attributes by the given filter expression.
+func (c *Client) SearchAttrs(filter string, attrNames ...string) (attrs []*ldap.EntryAttribute, err error) {
+	if filter == "" {
+		return nil, errors.New("filter is empty")
 	}
 
 	conn, err := connect(c.config.Host)
@@ -94,39 +100,36 @@ func (c *Client) GetAttributes(username string, attrNames ...string) ([]*ldap.En
 	}
 	defer conn.Close()
 
-	entry, err := c.search(conn, username, attrNames...)
+	entries, err := c.search(conn, filter, attrNames...)
 	if err != nil {
 		return nil, err
 	}
 
-	return entry.Attributes, nil
+	for _, entry := range entries {
+		attrs = append(attrs, entry.Attributes...)
+	}
+	return attrs, nil
 }
 
-// search tries to find the given user named username, as well as the associated attributes.
-func (c *Client) search(conn *ldap.Conn, username string, attrNames ...string) (*ldap.Entry, error) {
+// search searches the LDAP entries by the given filter expression.
+func (c *Client) search(conn *ldap.Conn, filter string, attrNames ...string) ([]*ldap.Entry, error) {
 	// Perform the initial read-only bind for admin.
 	if err := conn.Bind(c.config.ROAdmin.Name, c.config.ROAdmin.Pass); err != nil {
 		return nil, err
 	}
 
-	// Find the user by uid.
+	// Search the LDAP entries.
 	result, err := conn.Search(ldap.NewSearchRequest(
 		c.config.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		fmt.Sprintf("(uid=%v)", username),
-		attrNames,
+		filter, attrNames,
 		nil,
 	))
 	if err != nil {
 		return nil, err
 	}
 
-	if len(result.Entries) < 1 {
-		return nil, ErrUserNotFound
-	}
-
-	// Only return the first one if there're multiple entries.
-	return result.Entries[0], nil
+	return result.Entries, nil
 }
 
 // Helper functions
