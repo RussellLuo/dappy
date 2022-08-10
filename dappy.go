@@ -17,10 +17,12 @@ var (
 )
 
 // Config is the configuration of a dappy client.
+// All fields are required, except for Filter.
 type Config struct {
 	Host    string // The LDAP host and port, ex. "ldap.example.com:389"
 	ROAdmin User   // The read-only admin for initial bind
 	BaseDN  string // The base directory, ex. "ou=People,dc=example,dc=com"
+	Filter  string // The filter attribute for searching users, defaults to "sAMAccountName"
 }
 
 // User holds the name and pass required for initial read-only bind.
@@ -29,7 +31,7 @@ type User struct {
 	Pass string
 }
 
-// local struct for implementing Client interface
+// Client represents The LDAP client.
 type Client struct {
 	config Config
 }
@@ -48,6 +50,9 @@ func New(config Config) (*Client, error) {
 	}
 	if config.BaseDN == "" {
 		return nil, errors.New("config.BaseDN is empty")
+	}
+	if config.Filter == "" {
+		config.Filter = "sAMAccountName"
 	}
 
 	return &Client{config: config}, nil
@@ -68,7 +73,7 @@ func (c *Client) Auth(username, password string) error {
 	}
 	defer conn.Close()
 
-	filter := fmt.Sprintf("(uid=%v)", username)
+	filter := fmt.Sprintf("(%v=%v)", c.config.Filter, username)
 	entries, err := c.search(conn, filter, "dn")
 	if err != nil {
 		return err
